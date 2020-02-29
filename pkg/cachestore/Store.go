@@ -1,4 +1,4 @@
-package main
+package cachestore
 
 import (
 	"bytes"
@@ -23,15 +23,6 @@ type Store struct {
 func NewStore() *Store {
 	store := &Store{Indexes: make(map[int]*Index)}
 
-	//f, err := os.OpenFile("./cache/main_file_cache.idx255", os.O_RDONLY, 0644)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//index255 := &IndexFile{
-	//	IndexFileId: 255,
-	//	File:f,
-	//}
 	index255 := NewIndexFile(255)
 
 	f, err := os.OpenFile("./cache/main_file_cache.dat2", os.O_RDONLY, 0644)
@@ -43,8 +34,6 @@ func NewStore() *Store {
 
 	for i := 0; i < index255.GetIndexCount()/INDEX_ENTRY_LENGTH; i++ {
 		indexEntry := index255.Read(i)
-
-		log.Printf("%+v", indexEntry)
 
 		indexData := store.DataFile.Read(index255.IndexFileId, indexEntry.Id, indexEntry.Sector, indexEntry.Length)
 		reader := bytes.NewReader(indexData)

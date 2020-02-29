@@ -1,4 +1,4 @@
-package main
+package cachestore
 
 type Index struct {
 	Id          int

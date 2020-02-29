@@ -1,4 +1,4 @@
-package main
+package cachestore
 
 type Archive struct {
 	Index       *Index

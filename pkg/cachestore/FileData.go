@@ -1,4 +1,4 @@
-package main
+package cachestore
 
 type FileData struct {
 	Id       uint16
