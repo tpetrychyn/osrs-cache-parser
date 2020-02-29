@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 )
@@ -8,6 +9,18 @@ import (
 type IndexFile struct {
 	File *os.File
 	IndexFileId int
+}
+
+func NewIndexFile(id int) *IndexFile {
+	f, err := os.OpenFile(fmt.Sprintf("./cache/main_file_cache.idx%d", id), os.O_RDONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+
+	return &IndexFile{
+		IndexFileId: id,
+		File:f,
+	}
 }
 
 func (i *IndexFile) Read(id int) *IndexEntry {
