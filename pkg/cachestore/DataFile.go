@@ -43,13 +43,13 @@ func (d *DataFile) Read(indexId int, archiveId int, sector int, size int) []byte
 			dataBlockSize = SECTOR_SIZE - headerSize
 		}
 
-		temp := make([]byte, headerSize * dataBlockSize)
+		temp := make([]byte, headerSize + dataBlockSize)
 		i, err := d.File.Read(temp)
 		if err != nil {
 			panic(err)
 		}
 
-		if i != headerSize * dataBlockSize {
+		if i != headerSize + dataBlockSize {
 			log.Printf("short read")
 			return nil
 		}

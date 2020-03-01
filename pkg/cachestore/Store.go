@@ -5,6 +5,7 @@ import (
 	"compress/bzip2"
 	"compress/gzip"
 	"encoding/binary"
+	"fmt"
 	"hash/crc32"
 	"io"
 	"log"
@@ -17,25 +18,25 @@ var BZIP_HEADER = []byte{66, 90, 104, 49}
 
 type Store struct {
 	DataFile *DataFile
-	Indexes  map[int]*Index
+	Index255 *IndexFile
+	Indexes  []*Index
 }
 
 func NewStore() *Store {
-	store := &Store{Indexes: make(map[int]*Index)}
-
 	index255 := NewIndexFile(255)
 
 	f, err := os.OpenFile("./cache/main_file_cache.dat2", os.O_RDONLY, 0644)
 	if err != nil {
 		panic(err)
 	}
+	dataFile := &DataFile{File: f}
 
-	store.DataFile = &DataFile{File: f}
+	store := &Store{Indexes: make([]*Index, index255.GetIndexCount()/INDEX_ENTRY_LENGTH), DataFile: dataFile, Index255: index255}
 
-	for i := 0; i < index255.GetIndexCount()/INDEX_ENTRY_LENGTH; i++ {
-		indexEntry := index255.Read(i)
+	for i := 0; i < store.Index255.GetIndexCount()/INDEX_ENTRY_LENGTH; i++ {
+		indexEntry := store.Index255.Read(i)
 
-		indexData := store.DataFile.Read(index255.IndexFileId, indexEntry.Id, indexEntry.Sector, indexEntry.Length)
+		indexData := store.DataFile.Read(store.Index255.IndexFileId, indexEntry.Id, indexEntry.Sector, indexEntry.Length)
 		reader := bytes.NewReader(indexData)
 
 		var compression int8
@@ -147,4 +148,23 @@ func (s *Store) LoadArchive(a *Archive) []byte {
 	indexEntry := indexFile.Read(int(a.ArchiveId))
 
 	return s.DataFile.Read(a.Index.Id, indexEntry.Id, indexEntry.Sector, indexEntry.Length)
+}
+
+func (s *Store) ReadIndex(id int) []byte {
+	entry := s.Index255.Read(id)
+
+	if entry == nil {
+		panic(fmt.Sprintf("tried to read nil entry from index %d", id))
+	}
+
+	return s.DataFile.Read(s.Index255.IndexFileId, entry.Id, entry.Sector, entry.Length)
+}
+
+func (s *Store) FindIndex(id int) *Index {
+	for _, v := range s.Indexes {
+		if v.Id == id {
+			return v
+		}
+	}
+	return nil
 }
