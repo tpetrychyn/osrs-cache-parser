@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	store := cachestore.NewStore()
+	store := cachestore.NewStore("./cache")
 
 	log.Printf("cachestore indexs %d", len(store.Indexes))
 	itemArchive := store.Indexes[2].Archives[10]

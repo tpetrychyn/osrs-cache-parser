@@ -2,14 +2,11 @@ package cachestore
 
 import (
 	"bytes"
-	"compress/bzip2"
-	"compress/gzip"
 	"encoding/binary"
 	"fmt"
 	"hash/crc32"
-	"io"
-	"log"
 	"os"
+	"osrs-cache-parser/pkg/compression"
 )
 
 const INDEX_ENTRY_LENGTH = 6
@@ -17,21 +14,22 @@ const INDEX_ENTRY_LENGTH = 6
 var BZIP_HEADER = []byte{66, 90, 104, 49}
 
 type Store struct {
-	DataFile *DataFile
-	Index255 *IndexFile
-	Indexes  []*Index
+	CachePath string
+	DataFile  *DataFile
+	Index255  *IndexFile
+	Indexes   []*Index
 }
 
-func NewStore() *Store {
-	index255 := NewIndexFile(255)
+func NewStore(cachePath string) *Store {
+	index255 := NewIndexFile(255, cachePath)
 
-	f, err := os.OpenFile("./cache/main_file_cache.dat2", os.O_RDONLY, 0644)
+	f, err := os.OpenFile(fmt.Sprintf("%s/main_file_cache.dat2", cachePath), os.O_RDONLY, 0644)
 	if err != nil {
 		panic(err)
 	}
 	dataFile := &DataFile{File: f}
 
-	store := &Store{Indexes: make([]*Index, index255.GetIndexCount()/INDEX_ENTRY_LENGTH), DataFile: dataFile, Index255: index255}
+	store := &Store{CachePath: cachePath, Indexes: make([]*Index, index255.GetIndexCount()/INDEX_ENTRY_LENGTH), DataFile: dataFile, Index255: index255}
 
 	for i := 0; i < store.Index255.GetIndexCount()/INDEX_ENTRY_LENGTH; i++ {
 		indexEntry := store.Index255.Read(i)
@@ -39,8 +37,8 @@ func NewStore() *Store {
 		indexData := store.DataFile.Read(store.Index255.IndexFileId, indexEntry.Id, indexEntry.Sector, indexEntry.Length)
 		reader := bytes.NewReader(indexData)
 
-		var compression int8
-		_ = binary.Read(reader, binary.BigEndian, &compression)
+		var compressionType int8
+		_ = binary.Read(reader, binary.BigEndian, &compressionType)
 
 		var compressedLength int32
 		_ = binary.Read(reader, binary.BigEndian, &compressedLength)
@@ -49,67 +47,10 @@ func NewStore() *Store {
 		// first 5 bytes of the indexData to the crc
 		crc.Write([]byte{indexData[0], indexData[1], indexData[2], indexData[3], indexData[4]})
 
-		var data []byte
-		switch compression {
-		case 0: // no compression
-			data = make([]byte, compressedLength)
-			encryptedData := make([]byte, compressedLength)
-			reader.Read(encryptedData)
-			crc.Write(encryptedData)
-
-			data = encryptedData
-		case 1: // BZ2
-			encryptedData := make([]byte, compressedLength+4)
-			_, _ = reader.Read(encryptedData)
-			crc.Write(encryptedData)
-
-			stream := bytes.NewReader(encryptedData)
-			var decompressedLength int32
-			_ = binary.Read(stream, binary.BigEndian, &decompressedLength)
-
-			comp := make([]byte, compressedLength)
-			_, _ = stream.ReadAt(comp, 4)
-			comp = append(BZIP_HEADER, comp...)
-			bz := bzip2.NewReader(bytes.NewReader(comp))
-
-			var dBuffer bytes.Buffer
-			if _, err := io.Copy(&dBuffer, bz); err != nil {
-				panic(err)
-			}
-
-			data = dBuffer.Bytes()
-			if len(data) != int(decompressedLength) {
-				log.Printf("bytes read from bzip %d did not match decompressedLength %d", len(data), decompressedLength)
-			}
-		case 2: // GZ
-			encryptedData := make([]byte, compressedLength+4)
-			reader.Read(encryptedData)
-			crc.Write(encryptedData)
-
-			stream := bytes.NewReader(encryptedData)
-
-			var decompressedLength int32
-			binary.Read(stream, binary.BigEndian, &decompressedLength)
-
-			comp := make([]byte, compressedLength)
-			stream.ReadAt(comp, 4)
-
-			gz, err := gzip.NewReader(bytes.NewReader(comp))
-			if err != nil {
-				panic(err)
-			}
-
-			var dBuffer bytes.Buffer
-			if _, err := io.Copy(&dBuffer, gz); err != nil {
-				panic(err)
-			}
-
-			data = dBuffer.Bytes()
-			if len(data) != int(decompressedLength) {
-				log.Printf("bytes read from gzip %d did not match decompressedLength %d", len(data), decompressedLength)
-			}
-		default:
-			panic("unknown compression type")
+		compressionStrategy := compression.GetCompressionStrategy(compressionType)
+		data, err := compressionStrategy.Decompress(reader, compressedLength, crc, nil)
+		if err != nil {
+			panic(err)
 		}
 
 		id := IndexData{}
@@ -121,18 +62,19 @@ func NewStore() *Store {
 			Named:       id.Named,
 			Revision:    id.Revision,
 			Crc:         crc.Sum32(),
-			Compression: compression,
+			Compression: compressionType,
 			Archives:    make(map[uint16]*Archive),
 		}
 
 		for _, v := range id.Archives {
 			index.Archives[v.Id] = &Archive{
-				Index:     index,
-				ArchiveId: v.Id,
-				NameHash:  v.NameHash,
-				Crc:       v.Crc,
-				Revision:  v.Revision,
-				FileData:  v.Files,
+				Index:       index,
+				ArchiveId:   v.Id,
+				NameHash:    v.NameHash,
+				Compression: compressionType,
+				Crc:         v.Crc,
+				Revision:    v.Revision,
+				FileData:    v.Files,
 			}
 		}
 
@@ -143,7 +85,7 @@ func NewStore() *Store {
 }
 
 func (s *Store) LoadArchive(a *Archive) []byte {
-	indexFile := NewIndexFile(a.Index.Id)
+	indexFile := NewIndexFile(a.Index.Id, s.CachePath)
 
 	indexEntry := indexFile.Read(int(a.ArchiveId))
 

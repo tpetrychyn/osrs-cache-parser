@@ -11,8 +11,8 @@ type IndexFile struct {
 	IndexFileId int
 }
 
-func NewIndexFile(id int) *IndexFile {
-	f, err := os.OpenFile(fmt.Sprintf("./cache/main_file_cache.idx%d", id), os.O_RDONLY, 0644)
+func NewIndexFile(id int, cachePath string) *IndexFile {
+	f, err := os.OpenFile(fmt.Sprintf("%s/main_file_cache.idx%d", cachePath, id), os.O_RDONLY, 0644)
 	if err != nil {
 		panic(err)
 	}

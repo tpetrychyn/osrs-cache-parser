@@ -6,6 +6,6 @@ type Archive struct {
 	NameHash    int32
 	Crc         int32
 	Revision    int32
-	Compression int
+	Compression int8
 	FileData    []*FileData
 }
