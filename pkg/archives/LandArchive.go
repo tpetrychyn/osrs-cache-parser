@@ -84,6 +84,7 @@ func (l *LandArchive) LoadObjects(regionId int, keys []int32) []*models.WorldObj
 			height := (position >> 12) & 0x3
 
 			objectArray = append(objectArray, &models.WorldObject{
+				Id:          id,
 				LocalY:      y,
 				LocalX:      x,
 				Height:      height,

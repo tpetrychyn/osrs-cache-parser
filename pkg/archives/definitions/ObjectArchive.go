@@ -13,16 +13,18 @@ import (
 
 const ConfigIndex = 2
 
-const ObjectConfigId = 6
-
 type ObjectArchive struct {
 	store *cachestore.Store
+}
+
+func NewObjectArchive(store *cachestore.Store) *ObjectArchive {
+	return &ObjectArchive{store:store}
 }
 
 func (o *ObjectArchive) LoadObjectDefs() []*models.ObjectDef {
 
 	index := o.store.FindIndex(ConfigIndex)
-	archive, ok := index.Archives[ObjectConfigId]
+	archive, ok := index.Archives[models.ConfigType.Object]
 	if !ok {
 		return nil
 	}
@@ -52,6 +54,7 @@ func (o *ObjectArchive) LoadObjectDefs() []*models.ObjectDef {
 	archiveFiles.LoadContents(data)
 	objectDefs := make([]*models.ObjectDef, len(archiveFiles.Files))
 	for _, file := range archiveFiles.Files {
+
 		reader := bytes.NewReader(file.Contents)
 		obj := models.NewObjectDef()
 		for {
@@ -77,7 +80,7 @@ func (o *ObjectArchive) LoadObjectDefs() []*models.ObjectDef {
 				obj.Width = int(width)
 			case 15:
 				length, _ := reader.ReadByte()
-				obj.Width = int(length)
+				obj.Length = int(length)
 			case 17:
 				obj.Solid = false
 			case 18:

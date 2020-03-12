@@ -20,6 +20,8 @@ type ObjectDef struct {
 
 func NewObjectDef() *ObjectDef {
 	return &ObjectDef{
+		Width: 1,
+		Length: 1,
 		Solid:        true,
 		Impenetrable: true,
 		Options:      make([]string, 5),
