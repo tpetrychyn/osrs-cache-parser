@@ -8,10 +8,9 @@ import (
 	"log"
 	"osrs-cache-parser/pkg/cachestore"
 	"osrs-cache-parser/pkg/compression"
+	"osrs-cache-parser/pkg/models"
 	"osrs-cache-parser/pkg/utils"
 )
-
-const MapIndex = 5
 
 const X = 64
 const Y = 64
@@ -36,7 +35,7 @@ func (m *MapArchive) LoadBlockedTiles(regionId int) (map[string]bool, map[string
 	blockedTiles := make(map[string]bool)
 	bridgeTiles := make(map[string]bool)
 
-	index := m.store.FindIndex(MapIndex)
+	index := m.store.FindIndex(models.IndexType.Maps)
 
 	x := regionId >> 8
 	z := regionId & 0xFF

@@ -11,8 +11,6 @@ import (
 	"osrs-cache-parser/pkg/utils"
 )
 
-const ConfigIndex = 2
-
 type ObjectArchive struct {
 	store *cachestore.Store
 }
@@ -23,7 +21,7 @@ func NewObjectArchive(store *cachestore.Store) *ObjectArchive {
 
 func (o *ObjectArchive) LoadObjectDefs() []*models.ObjectDef {
 
-	index := o.store.FindIndex(ConfigIndex)
+	index := o.store.FindIndex(models.IndexType.Configs)
 	archive, ok := index.Archives[models.ConfigType.Object]
 	if !ok {
 		return nil

@@ -23,7 +23,7 @@ func NewLandArchive(store *cachestore.Store) *LandArchive {
 func (l *LandArchive) LoadObjects(regionId int, keys []int32) []*models.WorldObject {
 	objectArray := make([]*models.WorldObject, 0)
 
-	index := l.store.FindIndex(MapIndex)
+	index := l.store.FindIndex(models.IndexType.Maps)
 
 	x := regionId >> 8
 	z := regionId & 0xFF
