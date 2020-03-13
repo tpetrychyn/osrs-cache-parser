@@ -3,12 +3,12 @@ package definitions
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/cachestore"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/cachestore/fs"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/compression"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/models"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/utils"
 	"hash/crc32"
-	"osrs-cache-parser/pkg/cachestore"
-	"osrs-cache-parser/pkg/cachestore/fs"
-	"osrs-cache-parser/pkg/compression"
-	"osrs-cache-parser/pkg/models"
-	"osrs-cache-parser/pkg/utils"
 )
 
 type ObjectArchive struct {

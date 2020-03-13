@@ -1,4 +1,4 @@
-module osrs-cache-parser
+module github.com/tpetrychyn/osrs-cache-parser
 
 go 1.13
 

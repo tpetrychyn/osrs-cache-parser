@@ -5,6 +5,7 @@ import (
 	"compress/bzip2"
 	"encoding/binary"
 	"fmt"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/utils"
 	"golang.org/x/crypto/xtea"
 	"hash"
 	"io"
@@ -18,6 +19,10 @@ func (b *Bzip2) Decompress(reader io.Reader, compressedLength int32, crc hash.Ha
 	encryptedData := make([]byte, compressedLength+4)
 	_, _ = reader.Read(encryptedData)
 	crc.Write(encryptedData)
+
+	if xteaCipher != nil {
+		encryptedData = utils.XteaDecrypt(xteaCipher, encryptedData)
+	}
 
 	stream := bytes.NewReader(encryptedData)
 	var decompressedLength int32

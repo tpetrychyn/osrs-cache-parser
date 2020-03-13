@@ -1,0 +1,57 @@
+package models
+
+type InterfaceDef struct {
+	Id                  int
+	IsIf3               bool
+	Type                int
+	ContentType         int
+	OriginalX           int
+	OriginalY           int
+	OriginalWidth       int
+	OriginalHeight      int
+	WidthMode           int
+	HeightMode          int
+	XPositionMode       int
+	YPositionMode       int
+	ParentId            int
+	IsHidden            bool
+	ScrollWidth         int
+	ScrollHeight        int
+	NoClickThrough      bool
+	SpriteId            int
+	TextureId           int
+	SpriteTiling        bool
+	Opacity             int
+	BorderType          int
+	ShadowColor         int
+	FlippedVertically   bool
+	FlippedHorizontally bool
+	ModelType           int
+	ModelId             int
+	OffsetX2d           int
+	OffsetY2d           int
+	RotationX           int
+	RotationY           int
+	RotationZ           int
+	ModelZoom           int
+	Animation           int
+	Orthogonal          bool
+	ModelHeightOverride int
+	FontId              int
+	Text                string
+	LineHeight          int
+	XTextAlignment      int
+	YTextAlignment      int
+	TextShadowed        bool
+	TextColor           int
+	Filled              bool
+	LineWidth           int
+	LineDirection       bool
+	ClickMask           int
+	Name                string
+	Actions             []string
+	DragDeadZone        int
+	DragDeadTime        int
+	DragRenderBehavior  int
+	TargetVerb          string
+}

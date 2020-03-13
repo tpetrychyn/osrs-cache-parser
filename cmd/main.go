@@ -7,12 +7,12 @@ import (
 	"fyne.io/fyne/canvas"
 	"fyne.io/fyne/layout"
 	"fyne.io/fyne/widget"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/archives/definitions"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/cachestore"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/models"
 	"image"
 	"image/color"
 	"log"
-	"osrs-cache-parser/pkg/archives/definitions"
-	"osrs-cache-parser/pkg/cachestore"
-	"osrs-cache-parser/pkg/models"
 	"strconv"
 )
 

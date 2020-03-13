@@ -2,7 +2,7 @@ package definitions
 
 import (
 	"log"
-	"osrs-cache-parser/pkg/cachestore"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/cachestore"
 	"testing"
 )
 

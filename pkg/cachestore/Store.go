@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/compression"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/utils"
+	"golang.org/x/crypto/xtea"
 	"hash/crc32"
 	"os"
-	"osrs-cache-parser/pkg/compression"
 )
 
 const INDEX_ENTRY_LENGTH = 6
@@ -90,6 +92,36 @@ func (s *Store) LoadArchive(a *Archive) []byte {
 	indexEntry := indexFile.Read(int(a.ArchiveId))
 
 	return s.DataFile.Read(a.Index.Id, indexEntry.Id, indexEntry.Sector, indexEntry.Length)
+}
+
+func (s *Store) DecompressArchive(archive *Archive, keys []int32) (*bytes.Buffer, error) {
+	dataReader := bytes.NewReader(s.LoadArchive(archive))
+
+	var xteaCipher *xtea.Cipher
+	var err error
+	xteaCipher, err = utils.XteaKeyFromIntArray(keys)
+	if err != nil {
+		return nil, err
+	}
+
+	var compressionType int8
+	err = binary.Read(dataReader, binary.BigEndian, &compressionType)
+	if err != nil {
+		return nil, err
+	}
+
+	var compressedLength int32
+	err = binary.Read(dataReader, binary.BigEndian, &compressedLength)
+	if err != nil {
+		return nil, err
+	}
+
+	compressionStrategy := compression.GetCompressionStrategy(compressionType)
+	data, err := compressionStrategy.Decompress(dataReader, compressedLength, crc32.NewIEEE(), xteaCipher)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(data), nil
 }
 
 func (s *Store) ReadIndex(id int) []byte {

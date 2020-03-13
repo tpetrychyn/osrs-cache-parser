@@ -4,12 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"hash/crc32"
-	"log"
-	"osrs-cache-parser/pkg/cachestore"
-	"osrs-cache-parser/pkg/compression"
-	"osrs-cache-parser/pkg/models"
-	"osrs-cache-parser/pkg/utils"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/cachestore"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/models"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/utils"
 )
 
 type LandArchive struct {
@@ -39,28 +36,32 @@ func (l *LandArchive) LoadObjects(regionId int, keys []int32) []*models.WorldObj
 		return objectArray
 	}
 
-	landData := l.store.LoadArchive(landArchive)
-
-	xteaCipher, err := utils.XteaKeyFromIntArray(keys)
-	if err != nil || xteaCipher == nil {
+	buf, err := l.store.DecompressArchive(landArchive, keys)
+	if err != nil {
 		return objectArray
 	}
-
-	landReader := bytes.NewReader(landData)
-	log.Printf("landData len %d %+v", len(landData), landData)
-
-	var compressionType int8
-	_ = binary.Read(landReader, binary.BigEndian, &compressionType)
-
-	var compressedLength int32
-	_ = binary.Read(landReader, binary.BigEndian, &compressedLength)
-
-	compressionStrategy := compression.GetCompressionStrategy(compressionType)
-	data, err := compressionStrategy.Decompress(landReader, compressedLength, crc32.NewIEEE(), xteaCipher)
-	if err != nil {
-		panic(err)
-	}
-	buf := bytes.NewBuffer(data)
+	//landData := l.store.LoadArchive(landArchive)
+	//
+	//xteaCipher, err := utils.XteaKeyFromIntArray(keys)
+	//if err != nil || xteaCipher == nil {
+	//	return objectArray
+	//}
+	//
+	//landReader := bytes.NewReader(landData)
+	//log.Printf("landData len %d %+v", len(landData), landData)
+	//
+	//var compressionType int8
+	//_ = binary.Read(landReader, binary.BigEndian, &compressionType)
+	//
+	//var compressedLength int32
+	//_ = binary.Read(landReader, binary.BigEndian, &compressedLength)
+	//
+	//compressionStrategy := compression.GetCompressionStrategy(compressionType)
+	//data, err := compressionStrategy.Decompress(landReader, compressedLength, crc32.NewIEEE(), xteaCipher)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//buf := bytes.NewBuffer(data)
 
 	id := -1
 	for {

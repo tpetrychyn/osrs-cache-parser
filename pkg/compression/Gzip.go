@@ -5,10 +5,10 @@ import (
 	"compress/gzip"
 	"encoding/binary"
 	"fmt"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/utils"
 	"golang.org/x/crypto/xtea"
 	"hash"
 	"io"
-	"osrs-cache-parser/pkg/utils"
 )
 
 type Gzip struct {}

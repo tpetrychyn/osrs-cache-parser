@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"hash/crc32"
 	"log"
-	"osrs-cache-parser/pkg/cachestore"
-	"osrs-cache-parser/pkg/compression"
-	"osrs-cache-parser/pkg/models"
-	"osrs-cache-parser/pkg/utils"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/cachestore"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/compression"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/models"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/utils"
 )
 
 const X = 64
