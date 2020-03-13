@@ -9,7 +9,7 @@ type IndexData struct {
 	Protocol int8
 	Revision int32
 	Named    bool
-	Archives []*ArchiveData
+	Groups   []*ArchiveData
 }
 
 func (i *IndexData) Load(data []byte) {
@@ -30,7 +30,7 @@ func (i *IndexData) Load(data []byte) {
 	var validArchivesCount uint16
 	binary.Read(stream, binary.BigEndian, &validArchivesCount)
 
-	i.Archives = make([]*ArchiveData, validArchivesCount)
+	i.Groups = make([]*ArchiveData, validArchivesCount)
 
 	var lastArchiveId uint16
 	for index:=0;index<int(validArchivesCount);index++ {
@@ -38,27 +38,27 @@ func (i *IndexData) Load(data []byte) {
 		binary.Read(stream, binary.BigEndian, &archiveId)
 		lastArchiveId += archiveId
 		archiveId = lastArchiveId
-		i.Archives[index] = &ArchiveData{Id: archiveId}
+		i.Groups[index] = &ArchiveData{Id: archiveId}
 	}
 
 	if i.Named {
 		for index:=0;index<int(validArchivesCount);index++ {
 			var nameHash int32
 			binary.Read(stream, binary.BigEndian, &nameHash)
-			i.Archives[index].NameHash = nameHash
+			i.Groups[index].NameHash = nameHash
 		}
 	}
 
 	for index:=0;index<int(validArchivesCount);index++ {
 		var crc int32
 		binary.Read(stream, binary.BigEndian, &crc)
-		i.Archives[index].Crc = crc
+		i.Groups[index].Crc = crc
 	}
 
 	for index:=0;index<int(validArchivesCount);index++ {
 		var revision int32
 		binary.Read(stream, binary.BigEndian, &revision)
-		i.Archives[index].Revision = revision
+		i.Groups[index].Revision = revision
 	}
 
 	numFiles := make([]uint16, validArchivesCount)
@@ -70,7 +70,7 @@ func (i *IndexData) Load(data []byte) {
 
 	for index:=0;index<int(validArchivesCount);index++ {
 		num := numFiles[index]
-		i.Archives[index].Files = make([]*FileData, num)
+		i.Groups[index].Files = make([]*FileData, num)
 
 		var last uint16
 		for n:=0;n<int(num);n++ {
@@ -78,7 +78,7 @@ func (i *IndexData) Load(data []byte) {
 			binary.Read(stream, binary.BigEndian, &fileId)
 			last += fileId
 			fileId = last
-			i.Archives[index].Files[n] = &FileData{Id: fileId}
+			i.Groups[index].Files[n] = &FileData{Id: fileId}
 		}
 	}
 
@@ -88,7 +88,7 @@ func (i *IndexData) Load(data []byte) {
 			for n:=0;n<int(num);n++ {
 				var fileNameHash int32
 				binary.Read(stream, binary.BigEndian, &fileNameHash)
-				i.Archives[index].Files[n].NameHash = fileNameHash
+				i.Groups[index].Files[n].NameHash = fileNameHash
 			}
 		}
 	}

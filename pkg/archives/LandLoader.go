@@ -9,23 +9,23 @@ import (
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/utils"
 )
 
-type LandArchive struct {
+type LandLoader struct {
 	store *cachestore.Store
 }
 
-func NewLandArchive(store *cachestore.Store) *LandArchive {
-	return &LandArchive{store: store}
+func NewLandLoader(store *cachestore.Store) *LandLoader {
+	return &LandLoader{store: store}
 }
 
-func (l *LandArchive) LoadObjects(regionId int, keys []int32) []*models.WorldObject {
+func (l *LandLoader) LoadObjects(regionId int, keys []int32) []*models.WorldObject {
 	objectArray := make([]*models.WorldObject, 0)
 
 	index := l.store.FindIndex(models.IndexType.Maps)
 
 	x := regionId >> 8
 	z := regionId & 0xFF
-	var landArchive *cachestore.Archive
-	for _, v := range index.Archives {
+	var landArchive *cachestore.Group
+	for _, v := range index.Groups {
 		nameHash := utils.Djb2(fmt.Sprintf("l%d_%d", x, z))
 		if nameHash == v.NameHash {
 			landArchive = v
@@ -36,32 +36,11 @@ func (l *LandArchive) LoadObjects(regionId int, keys []int32) []*models.WorldObj
 		return objectArray
 	}
 
-	buf, err := l.store.DecompressArchive(landArchive, keys)
+	data, err := l.store.DecompressGroup(landArchive, keys)
 	if err != nil {
 		return objectArray
 	}
-	//landData := l.store.LoadArchive(landArchive)
-	//
-	//xteaCipher, err := utils.XteaKeyFromIntArray(keys)
-	//if err != nil || xteaCipher == nil {
-	//	return objectArray
-	//}
-	//
-	//landReader := bytes.NewReader(landData)
-	//log.Printf("landData len %d %+v", len(landData), landData)
-	//
-	//var compressionType int8
-	//_ = binary.Read(landReader, binary.BigEndian, &compressionType)
-	//
-	//var compressedLength int32
-	//_ = binary.Read(landReader, binary.BigEndian, &compressedLength)
-	//
-	//compressionStrategy := compression.GetCompressionStrategy(compressionType)
-	//data, err := compressionStrategy.Decompress(landReader, compressedLength, crc32.NewIEEE(), xteaCipher)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//buf := bytes.NewBuffer(data)
+	buf := bytes.NewBuffer(data)
 
 	id := -1
 	for {

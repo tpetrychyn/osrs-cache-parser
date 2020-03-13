@@ -1,4 +1,4 @@
-package definitions
+package archives
 
 import (
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/cachestore"
@@ -8,7 +8,7 @@ import (
 func TestObjectArchive_LoadObjectDefs(t *testing.T) {
 	store := cachestore.NewStore("../../../cache")
 
-	objectArchive := ObjectArchive{store:store}
+	objectArchive := ObjectArchive{store: store}
 
 	objectDefs := objectArchive.LoadObjectDefs()
 

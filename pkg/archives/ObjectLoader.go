@@ -1,14 +1,12 @@
-package definitions
+package archives
 
 import (
 	"bytes"
 	"encoding/binary"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/cachestore"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/cachestore/fs"
-	"github.com/tpetrychyn/osrs-cache-parser/pkg/compression"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/models"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/utils"
-	"hash/crc32"
 )
 
 type ObjectArchive struct {
@@ -22,26 +20,17 @@ func NewObjectArchive(store *cachestore.Store) *ObjectArchive {
 func (o *ObjectArchive) LoadObjectDefs() []*models.ObjectDef {
 
 	index := o.store.FindIndex(models.IndexType.Configs)
-	archive, ok := index.Archives[models.ConfigType.Object]
+	archive, ok := index.Groups[models.ConfigType.Object]
 	if !ok {
 		return nil
 	}
 
-	dataReader := bytes.NewReader(o.store.LoadArchive(archive))
-
-	var compressionType int8
-	_ = binary.Read(dataReader, binary.BigEndian, &compressionType)
-
-	var compressedLength int32
-	_ = binary.Read(dataReader, binary.BigEndian, &compressedLength)
-
-	compressionStrategy := compression.GetCompressionStrategy(compressionType)
-	data, err := compressionStrategy.Decompress(dataReader, compressedLength, crc32.NewIEEE(), nil)
+	data, err := o.store.DecompressGroup(archive, nil)
 	if err != nil {
 		return nil
 	}
 
-	archiveFiles := &fs.ArchiveFiles{Files: make([]*fs.FSFile, 0, len(archive.FileData))}
+	archiveFiles := &fs.GroupFiles{Files: make([]*fs.FSFile, 0, len(archive.FileData))}
 	for _, fd := range archive.FileData {
 		archiveFiles.Files = append(archiveFiles.Files, &fs.FSFile{
 			FileId:   fd.Id,
@@ -52,7 +41,6 @@ func (o *ObjectArchive) LoadObjectDefs() []*models.ObjectDef {
 	archiveFiles.LoadContents(data)
 	objectDefs := make([]*models.ObjectDef, len(archiveFiles.Files))
 	for _, file := range archiveFiles.Files {
-
 		reader := bytes.NewReader(file.Contents)
 		obj := models.NewObjectDef()
 		for {

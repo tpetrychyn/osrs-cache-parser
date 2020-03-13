@@ -1,8 +1,8 @@
 package cachestore
 
-type Archive struct {
+type Group struct {
 	Index       *Index
-	ArchiveId   uint16
+	GroupId     uint16
 	NameHash    int32
 	Crc         int32
 	Revision    int32

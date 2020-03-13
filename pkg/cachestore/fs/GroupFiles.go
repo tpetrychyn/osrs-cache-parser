@@ -5,32 +5,32 @@ import (
 	"encoding/binary"
 )
 
-type ArchiveFiles struct {
+type GroupFiles struct {
 	Files []*FSFile
 }
 
-func (a *ArchiveFiles) LoadContents(data []byte) {
-	if len(a.Files) == 0 {
+func (g *GroupFiles) LoadContents(data []byte) {
+	if len(g.Files) == 0 {
 		return
 	}
-	if len(a.Files) == 1 {
-		a.Files[0].Contents = data
+	if len(g.Files) == 1 {
+		g.Files[0].Contents = data
 		return
 	}
 
 	chunks := int(data[len(data)-1])
 	buffer := bytes.NewBuffer(data)
-	buffer.Next(buffer.Len() - 1 - chunks * len(a.Files) * 4)
+	buffer.Next(buffer.Len() - 1 - chunks * len(g.Files) * 4)
 
-	chunkSizes := make([][]int, len(a.Files))
+	chunkSizes := make([][]int, len(g.Files))
 	for i := range chunkSizes {
 		chunkSizes[i] = make([]int, chunks)
 	}
-	filesSize := make([]int, len(a.Files))
+	filesSize := make([]int, len(g.Files))
 
 	for chunk:=0;chunk<chunks;chunk++ {
 		chunkSize := 0
-		for id:=0;id<len(a.Files);id++ {
+		for id:=0;id<len(g.Files);id++ {
 			var delta int32
 			binary.Read(buffer, binary.BigEndian, &delta)
 			chunkSize += int(delta)
@@ -39,17 +39,17 @@ func (a *ArchiveFiles) LoadContents(data []byte) {
 		}
 	}
 
-	fileContents := make([][]byte, len(a.Files))
-	fileOffsets := make([]int, len(a.Files))
+	fileContents := make([][]byte, len(g.Files))
+	fileOffsets := make([]int, len(g.Files))
 
-	for i:=0;i<len(a.Files);i++ {
+	for i:=0;i<len(g.Files);i++ {
 		fileContents[i] = make([]byte, filesSize[i])
 	}
 
 	reader := bytes.NewReader(data) // restart from 0 again
 
 	for chunk:=0;chunk<chunks;chunk++ {
-		for id:=0;id<len(a.Files);id++ {
+		for id:=0;id<len(g.Files);id++ {
 			chunkSize := chunkSizes[id][chunk]
 			for i:=fileOffsets[id];i<fileOffsets[id]+chunkSize;i++ {
 				fileContents[id][i], _ = reader.ReadByte()
@@ -58,7 +58,7 @@ func (a *ArchiveFiles) LoadContents(data []byte) {
 		}
 	}
 
-	for i:=0;i<len(a.Files);i++ {
-		a.Files[i].Contents = fileContents[i]
+	for i:=0;i<len(g.Files);i++ {
+		g.Files[i].Contents = fileContents[i]
 	}
 }

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"io"
 )
 
@@ -19,4 +20,10 @@ func ReadString(r io.Reader) string {
 	}
 
 	return result
+}
+
+func Read24BitInt(reader *bytes.Reader) int32 {
+	by := make([]byte, 3)
+	reader.Read(by)
+	return int32(by[0])<<16 + int32(by[1])<<8 + int32(by[2])
 }

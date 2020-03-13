@@ -9,10 +9,10 @@ type InterfaceDef struct {
 	OriginalY           int
 	OriginalWidth       int
 	OriginalHeight      int
-	WidthMode           int
-	HeightMode          int
-	XPositionMode       int
-	YPositionMode       int
+	WidthMode           byte
+	HeightMode          byte
+	XPositionMode       byte
+	YPositionMode       byte
 	ParentId            int
 	IsHidden            bool
 	ScrollWidth         int
@@ -21,8 +21,8 @@ type InterfaceDef struct {
 	SpriteId            int
 	TextureId           int
 	SpriteTiling        bool
-	Opacity             int
-	BorderType          int
+	Opacity             byte
+	BorderType          byte
 	ShadowColor         int
 	FlippedVertically   bool
 	FlippedHorizontally bool
@@ -37,21 +37,22 @@ type InterfaceDef struct {
 	Animation           int
 	Orthogonal          bool
 	ModelHeightOverride int
+	ModelWidthOverride  int // unknown - runelite ignores this
 	FontId              int
 	Text                string
-	LineHeight          int
-	XTextAlignment      int
-	YTextAlignment      int
+	LineHeight          byte
+	XTextAlignment      byte
+	YTextAlignment      byte
 	TextShadowed        bool
 	TextColor           int
 	Filled              bool
-	LineWidth           int
+	LineWidth           byte
 	LineDirection       bool
 	ClickMask           int
 	Name                string
 	Actions             []string
-	DragDeadZone        int
-	DragDeadTime        int
-	DragRenderBehavior  int
+	DragDeadZone        byte
+	DragDeadTime        byte
+	DragRenderBehavior  bool
 	TargetVerb          string
 }

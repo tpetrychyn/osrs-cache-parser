@@ -7,7 +7,7 @@ import (
 	"fyne.io/fyne/canvas"
 	"fyne.io/fyne/layout"
 	"fyne.io/fyne/widget"
-	"github.com/tpetrychyn/osrs-cache-parser/pkg/archives/definitions"
+	"github.com/tpetrychyn/osrs-cache-parser/pkg/archives"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/cachestore"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/models"
 	"image"
@@ -19,7 +19,7 @@ import (
 func main() {
 	store := cachestore.NewStore("./cache")
 
-	spriteArchive := definitions.NewSpriteArchive(store)
+	spriteArchive := archives.NewSpriteArchive(store)
 
 	spriteMap := spriteArchive.LoadSpriteDefs()
 

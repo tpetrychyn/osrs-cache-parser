@@ -65,13 +65,13 @@ func NewStore(cachePath string) *Store {
 			Revision:    id.Revision,
 			Crc:         crc.Sum32(),
 			Compression: compressionType,
-			Archives:    make(map[uint16]*Archive),
+			Groups:      make(map[uint16]*Group),
 		}
 
-		for _, v := range id.Archives {
-			index.Archives[v.Id] = &Archive{
+		for _, v := range id.Groups {
+			index.Groups[v.Id] = &Group{
 				Index:       index,
-				ArchiveId:   v.Id,
+				GroupId:     v.Id,
 				NameHash:    v.NameHash,
 				Compression: compressionType,
 				Crc:         v.Crc,
@@ -86,22 +86,24 @@ func NewStore(cachePath string) *Store {
 	return store
 }
 
-func (s *Store) LoadArchive(a *Archive) []byte {
+func (s *Store) LoadGroup(a *Group) []byte {
 	indexFile := NewIndexFile(a.Index.Id, s.CachePath)
 
-	indexEntry := indexFile.Read(int(a.ArchiveId))
+	indexEntry := indexFile.Read(int(a.GroupId))
 
 	return s.DataFile.Read(a.Index.Id, indexEntry.Id, indexEntry.Sector, indexEntry.Length)
 }
 
-func (s *Store) DecompressArchive(archive *Archive, keys []int32) (*bytes.Buffer, error) {
-	dataReader := bytes.NewReader(s.LoadArchive(archive))
+func (s *Store) DecompressGroup(group *Group, keys []int32) ([]byte, error) {
+	dataReader := bytes.NewReader(s.LoadGroup(group))
 
 	var xteaCipher *xtea.Cipher
 	var err error
-	xteaCipher, err = utils.XteaKeyFromIntArray(keys)
-	if err != nil {
-		return nil, err
+	if keys != nil {
+		xteaCipher, err = utils.XteaKeyFromIntArray(keys)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var compressionType int8
@@ -121,7 +123,7 @@ func (s *Store) DecompressArchive(archive *Archive, keys []int32) (*bytes.Buffer
 	if err != nil {
 		return nil, err
 	}
-	return bytes.NewBuffer(data), nil
+	return data, nil
 }
 
 func (s *Store) ReadIndex(id int) []byte {
