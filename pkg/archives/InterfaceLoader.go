@@ -3,21 +3,35 @@ package archives
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/cachestore"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/cachestore/fs"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/models"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/utils"
+	"image"
+	"log"
 )
 
 type InterfaceLoader struct {
 	store *cachestore.Store
+
+	// these must be set to render interfaces
+	spriteLoader *SpriteLoader
+	fontLoader   *FontLoader
+	// TODO: modelLoader
+
+	// caching
+	interfaces [][]*models.InterfaceDef
 }
 
-func NewInterfaceLoader(store *cachestore.Store) *InterfaceLoader {
-	return &InterfaceLoader{store: store}
+func NewInterfaceLoader(store *cachestore.Store, spriteLoader *SpriteLoader, fontLoader *FontLoader) *InterfaceLoader {
+	return &InterfaceLoader{store: store, spriteLoader: spriteLoader, fontLoader: fontLoader}
 }
 
 func (i *InterfaceLoader) LoadInterfaces() [][]*models.InterfaceDef {
+	if i.interfaces != nil {
+		return i.interfaces
+	}
 	index := i.store.FindIndex(models.IndexType.Interfaces)
 	var maxArchiveId uint16
 	for _, a := range index.Groups {
@@ -49,6 +63,7 @@ func (i *InterfaceLoader) LoadInterfaces() [][]*models.InterfaceDef {
 			interfaces[archive.GroupId][fileId] = i.load(widgetId, file.Contents)
 		}
 	}
+	i.interfaces = interfaces
 	return interfaces
 }
 
@@ -75,33 +90,34 @@ func (i *InterfaceLoader) decodeIf3(iface *models.InterfaceDef, reader *bytes.Re
 	binary.Read(reader, binary.BigEndian, &typ)
 	iface.Type = int(typ)
 
-	var contentType, originalX, originalY, originalWidth uint16
+	var contentType, rawWidth uint16
 	binary.Read(reader, binary.BigEndian, &contentType)
 	iface.ContentType = int(contentType)
 
-	binary.Read(reader, binary.BigEndian, &originalX)
-	iface.OriginalX = int(originalX)
+	var rawX, rawY int16 // can be negative
+	binary.Read(reader, binary.BigEndian, &rawX)
+	iface.RawX = int(rawX)
 
-	binary.Read(reader, binary.BigEndian, &originalY)
-	iface.OriginalY = int(originalY)
+	binary.Read(reader, binary.BigEndian, &rawY)
+	iface.RawY = int(rawY)
 
-	binary.Read(reader, binary.BigEndian, &originalWidth)
-	iface.OriginalWidth = int(originalWidth)
+	binary.Read(reader, binary.BigEndian, &rawWidth)
+	iface.RawWidth = int(rawWidth)
 
 	if iface.Type == 9 {
-		var originalHeight int16
-		binary.Read(reader, binary.BigEndian, &originalHeight)
-		iface.OriginalHeight = int(originalHeight)
+		var rawHeight int16
+		binary.Read(reader, binary.BigEndian, &rawHeight)
+		iface.RawHeight = int(rawHeight)
 	} else {
-		var originalHeight uint16
-		binary.Read(reader, binary.BigEndian, &originalHeight)
-		iface.OriginalHeight = int(originalHeight)
+		var rawHeight uint16
+		binary.Read(reader, binary.BigEndian, &rawHeight)
+		iface.RawHeight = int(rawHeight)
 	}
 
 	iface.WidthMode, _ = reader.ReadByte()
 	iface.HeightMode, _ = reader.ReadByte()
-	iface.XPositionMode, _ = reader.ReadByte()
-	iface.YPositionMode, _ = reader.ReadByte()
+	iface.XAlignment, _ = reader.ReadByte()
+	iface.YAlignment, _ = reader.ReadByte()
 
 	var parentId uint16
 	binary.Read(reader, binary.BigEndian, &parentId)
@@ -130,15 +146,15 @@ func (i *InterfaceLoader) decodeIf3(iface *models.InterfaceDef, reader *bytes.Re
 		binary.Read(reader, binary.BigEndian, &spriteId)
 		iface.SpriteId = int(spriteId)
 
-		var textureId uint16
-		binary.Read(reader, binary.BigEndian, &textureId)
-		iface.TextureId = int(textureId)
+		var spriteAngle uint16
+		binary.Read(reader, binary.BigEndian, &spriteAngle)
+		iface.SpriteAngle = int(spriteAngle)
 
 		spriteTiling, _ := reader.ReadByte()
 		iface.SpriteTiling = spriteTiling == 1
 
 		iface.Opacity, _ = reader.ReadByte()
-		iface.BorderType, _ = reader.ReadByte()
+		iface.Outline, _ = reader.ReadByte()
 
 		var shadowColor int32
 		binary.Read(reader, binary.BigEndian, &shadowColor)
@@ -249,4 +265,80 @@ func (i *InterfaceLoader) decodeIf3(iface *models.InterfaceDef, reader *bytes.Re
 	dragRenderBehavior, _ := reader.ReadByte()
 	iface.DragRenderBehavior = dragRenderBehavior == 1
 	iface.TargetVerb = utils.ReadString(reader)
+}
+
+func (i *InterfaceLoader) DrawInterface(id int, x, y, width, height, offsetX, offsetY int) (image.Image, error) {
+	if i.spriteLoader == nil || i.fontLoader == nil {
+		return nil, fmt.Errorf("you must set a SpriteLoader, FontLoader, and ModelLoader first")
+	}
+	if id < 0 || id >= len(i.interfaces) {
+		return nil, fmt.Errorf("id %d out of range for list of interfaces, length %d", id, len(i.interfaces))
+	}
+	raster := models.NewRasterizer2d(width, height)
+	raster.SetClip(x, y, width, height)
+	for _, widget := range i.interfaces[id] {
+		widget.Resize(width, height)
+
+		screenPosX := widget.X + offsetX
+		screenPosY := widget.Y + offsetY
+
+		//if widget.Type == 0 {
+		//	var30 := screenPosX + widget.Width
+		//	var20 := screenPosY + widget.Height
+		//	minX := x //var15
+		//	if screenPosX > x {
+		//		minX = screenPosX
+		//	}
+		//	minY := y //var16
+		//	if screenPosY > y {
+		//		minY = y
+		//	}
+		//	maxWidth := width //var17
+		//	if var30 < width {
+		//		maxWidth = var30
+		//	}
+		//	maxHeight := height //var18
+		//	if var20 < height {
+		//		maxHeight = var20
+		//	}
+		//	drawInterface(widgets, minX, minY, maxWidth, maxHeight, screenPosX, screenPosY, false)
+		//	return
+		//}
+		if widget.Type == 5 { // sprite
+			sprite := i.spriteLoader.LoadSpriteDefs()[widget.SpriteId]
+			if sprite == nil {
+				continue
+			}
+			if !widget.SpriteTiling {
+				if sprite.FrameWidth == widget.Width && sprite.FrameHeight == widget.Height {
+					sprite.DrawTransBgAt(raster, screenPosX, screenPosY)
+				} else {
+					sprite.DrawScaledAt(raster, screenPosX, screenPosY, widget.Width, widget.Height)
+				}
+			} else {
+				raster.ExpandClip(screenPosX, screenPosY, screenPosX+widget.Width, screenPosY+widget.Height)
+				maxX := (sprite.FrameWidth - 1 + widget.Width) / sprite.FrameWidth
+				maxY := (sprite.FrameHeight - 1 + widget.Height) / sprite.FrameHeight
+				for x := 0; x < maxX; x++ {
+					for y := 0; y < maxY; y++ {
+						sprite.DrawTransBgAt(raster, screenPosX+x*sprite.FrameWidth, screenPosY+y*sprite.FrameHeight)
+					}
+				}
+				raster.SetClip(x, y, width, height)
+			}
+		}
+
+		if widget.Type == 4 { // text
+			font := i.fontLoader.LoadFonts()[widget.FontId]
+			if font == nil {
+				log.Printf("font not found %d", widget.FontId)
+				continue
+			}
+			text := widget.Text
+			color := widget.TextColor
+			font.DrawLines(raster, text, screenPosX, screenPosY, widget.Width, widget.Height, color, -1, int(widget.XTextAlignment), int(widget.YTextAlignment), int(widget.LineHeight))
+		}
+	}
+
+	return raster.Flush(), nil
 }

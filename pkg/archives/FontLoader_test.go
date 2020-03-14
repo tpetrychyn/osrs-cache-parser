@@ -17,7 +17,7 @@ func TestFontArchive_LoadFonts(t *testing.T) {
 
 	fonts := fa.LoadFonts()
 
-	font := fonts[models.FontB11]
+	font := fonts[494]
 	word := "Hello World"
 
 	raster := models.NewRasterizer2d(75, 20)

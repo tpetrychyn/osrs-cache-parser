@@ -10,17 +10,23 @@ import (
 
 type FontLoader struct {
 	store *cachestore.Store
+
+	// cache so loader object can be combined with other loaders
+	fonts map[int]*models.FontDef
 }
 
 func NewFontLoader(store *cachestore.Store) *FontLoader {
 	return &FontLoader{store: store}
 }
 
-func (f *FontLoader) LoadFonts() map[string]*models.FontDef {
+func (f *FontLoader) LoadFonts() map[int]*models.FontDef {
+	if f.fonts != nil {
+		return f.fonts
+	}
 	fontArchive := f.store.FindIndex(models.IndexType.Fonts)
 	spriteArchive := f.store.FindIndex(models.IndexType.Sprites)
 
-	fonts := make(map[string]*models.FontDef, len(models.FontNames))
+	fonts := make(map[int]*models.FontDef, len(models.FontNames))
 	for _, fontName := range models.FontNames {
 		hash := utils.RSHashString(fontName)
 		var sg *cachestore.Group
@@ -35,7 +41,7 @@ func (f *FontLoader) LoadFonts() map[string]*models.FontDef {
 			continue
 		}
 
-		spriteLoader := NewSpriteArchive(f.store)
+		spriteLoader := NewSpriteLoader(f.store)
 		sprites := spriteLoader.LoadGroupId(sg.GroupId)
 		if len(sprites) == 0 {
 			log.Printf("bad length of sprites")
@@ -59,7 +65,7 @@ func (f *FontLoader) LoadFonts() map[string]*models.FontDef {
 		spriteGroup := models.SpriteDefsToSpriteGroup(sprites)
 		font := models.NewFontDef(files.Files[0].Contents, spriteGroup.XOffsets, spriteGroup.YOffsets, spriteGroup.SpriteWidths, spriteGroup.SpriteHeights, spriteGroup.Pixels)
 
-		fonts[fontName] = font
+		fonts[int(files.Files[0].FileId)] = font
 	}
 
 	return fonts

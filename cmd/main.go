@@ -10,8 +10,6 @@ import (
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/archives"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/cachestore"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/models"
-	"image"
-	"image/color"
 	"log"
 	"strconv"
 )
@@ -19,9 +17,13 @@ import (
 func main() {
 	store := cachestore.NewStore("./cache")
 
-	spriteArchive := archives.NewSpriteArchive(store)
+	spriteLoader := archives.NewSpriteLoader(store)
+	spriteLoader.LoadSpriteDefs()
+	fontLoader := archives.NewFontLoader(store)
+	fontLoader.LoadFonts()
 
-	spriteMap := spriteArchive.LoadSpriteDefs()
+	interfaceLoader := archives.NewInterfaceLoader(store, spriteLoader, fontLoader)
+	interfaceLoader.LoadInterfaces()
 
 	applet := app.New()
 	spriteIdEntry := widget.NewEntry()
@@ -33,11 +35,12 @@ func main() {
 			log.Printf("invalid spriteId")
 			return
 		}
-		loadSprite(spriteMap, canvasImage, id)
+		loadInterface(interfaceLoader, canvasImage, currSpriteId)
+		//loadSprite(spriteMap, canvasImage, id)
 		currSpriteId = id
 	})
 	submit.Style = widget.PrimaryButton
-	spriteIdLabel := widget.NewLabel("Sprite ID")
+	spriteIdLabel := widget.NewLabel("Interface ID")
 	spriteIdLabel.Alignment = fyne.TextAlignTrailing
 	searchArea := fyne.NewContainerWithLayout(layout.NewGridLayout(3), spriteIdLabel, spriteIdEntry, submit)
 
@@ -46,7 +49,8 @@ func main() {
 	prevButton := widget.NewButton("Previous", func() {
 		if currSpriteId > 0 {
 			currSpriteId -= 1
-			loadSprite(spriteMap, canvasImage, currSpriteId)
+			loadInterface(interfaceLoader, canvasImage, currSpriteId)
+			//loadSprite(spriteMap, canvasImage, currSpriteId)
 			spriteIdEntry.SetText(fmt.Sprintf("%d", currSpriteId))
 		}
 	})
@@ -54,7 +58,8 @@ func main() {
 	nextButton := widget.NewButton("Next", func() {
 		if currSpriteId <= 2500 {
 			currSpriteId += 1
-			loadSprite(spriteMap, canvasImage, currSpriteId)
+			loadInterface(interfaceLoader, canvasImage, currSpriteId)
+			//loadSprite(spriteMap, canvasImage, currSpriteId)
 			spriteIdEntry.SetText(fmt.Sprintf("%d", currSpriteId))
 		}
 	})
@@ -65,13 +70,24 @@ func main() {
 		layout.NewBorderLayout(searchArea, navArea, nil, nil),
 		searchArea, navArea, imgContainer))
 
-	loadSprite(spriteMap, canvasImage, currSpriteId)
+	//loadSprite(spriteMap, canvasImage, currSpriteId)
+	loadInterface(interfaceLoader, canvasImage, currSpriteId)
 	w.ShowAndRun()
 }
 var currSpriteId = 0
 
-func loadSprite(spriteMap map[int]*models.SpriteDef, canvasImage *canvas.Image, spriteId int) {
-	sprite, ok := spriteMap[spriteId]
+func loadInterface(interfaceLoader *archives.InterfaceLoader, canvasImage *canvas.Image, interfaceId int) {
+	img, err := interfaceLoader.DrawInterface(interfaceId, 0, 0, 500, 300, 0, 0)
+	if err != nil {
+		log.Printf("error loading interface: %s", err.Error())
+		return
+	}
+	canvasImage.Image = img
+	canvasImage.Refresh()
+}
+
+func loadSprite(spriteLoader *archives.SpriteLoader, canvasImage *canvas.Image, spriteId int) {
+	sprite, ok := spriteLoader.LoadSpriteDefs()[spriteId]
 	if !ok {
 		log.Printf("No sprite found with that id")
 		return
@@ -82,36 +98,10 @@ func loadSprite(spriteMap map[int]*models.SpriteDef, canvasImage *canvas.Image, 
 		return
 	}
 
-	img := image.NewRGBA(image.Rectangle{
-		Min: image.Point{0, 0},
-		Max: image.Point{X: sprite.Width, Y: sprite.Height},
-	})
+	raster := models.NewRasterizer2d(sprite.FrameWidth, sprite.FrameHeight)
 
-	yoff := 0
-	off := 0
-	for y := 0; y < sprite.Height; y++ {
-		off = yoff
-		for x := 0; x < sprite.Width; x++ {
-			r, g, b, a := calcColor(sprite.Pixels[off])
-			img.Set(x, y, color.RGBA{
-				R: r,
-				G: g,
-				B: b,
-				A: a,
-			})
-			off++
-		}
-		yoff += sprite.Width
-	}
-	canvasImage.Image = img
+	sprite.DrawTransBgAt(raster, 0, 0)
+
+	canvasImage.Image = raster.Flush()
 	canvasImage.Refresh()
-}
-
-func calcColor(color int) (red, green, blue, alpha uint8) {
-	green = uint8((color >> 8) & 0xFF)
-	blue = uint8((color) & 0xFF)
-	red = uint8((color >> 16) & 0xFF)
-	alpha = uint8((color >> 24) & 0xFF)
-
-	return red, green, blue, alpha
 }

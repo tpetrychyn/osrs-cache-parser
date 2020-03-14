@@ -9,14 +9,20 @@ import (
 )
 
 type SpriteLoader struct {
-	store *cachestore.Store
+	store   *cachestore.Store
+
+	// used for caching a load and passing this loader around to interfaceLoader for example
+	sprites map[int]*models.SpriteDef
 }
 
-func NewSpriteArchive(store *cachestore.Store) *SpriteLoader {
+func NewSpriteLoader(store *cachestore.Store) *SpriteLoader {
 	return &SpriteLoader{store: store}
 }
 
 func (s *SpriteLoader) LoadSpriteDefs() map[int]*models.SpriteDef {
+	if s.sprites != nil {
+		return s.sprites
+	}
 	index := s.store.FindIndex(models.IndexType.Sprites)
 
 	spriteMap := make(map[int]*models.SpriteDef)
@@ -27,6 +33,7 @@ func (s *SpriteLoader) LoadSpriteDefs() map[int]*models.SpriteDef {
 		}
 	}
 
+	s.sprites = spriteMap
 	return spriteMap
 }
 
@@ -60,10 +67,10 @@ func (s *SpriteLoader) LoadGroupId(id uint16) []*models.SpriteDef {
 
 	for i := range sprites {
 		sprites[i] = &models.SpriteDef{
-			Id:        int(g.GroupId),
-			Frame:     i,
-			MaxWidth:  maxWidth,
-			MaxHeight: maxHeight,
+			Id:          int(g.GroupId),
+			Frame:       i,
+			FrameWidth:  int(maxWidth),
+			FrameHeight: int(maxHeight),
 		}
 	}
 
