@@ -10,6 +10,8 @@ import (
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/utils"
 	"image"
 	"log"
+	"sync"
+	"time"
 )
 
 type InterfaceLoader struct {
@@ -274,71 +276,83 @@ func (i *InterfaceLoader) DrawInterface(id int, x, y, width, height, offsetX, of
 	if id < 0 || id >= len(i.interfaces) {
 		return nil, fmt.Errorf("id %d out of range for list of interfaces, length %d", id, len(i.interfaces))
 	}
+	t := time.Now()
 	raster := models.NewRasterizer2d(width, height)
 	raster.SetClip(x, y, width, height)
+	wg := &sync.WaitGroup{}
+	wg.Add(len(i.interfaces[id]))
+	sprites := i.spriteLoader.LoadSpriteDefs()
+	fonts := i.fontLoader.LoadFonts()
 	for _, widget := range i.interfaces[id] {
-		widget.Resize(width, height)
+		go func(widget *models.InterfaceDef, wg *sync.WaitGroup) {
+			defer wg.Done()
+			widget.Resize(width, height)
 
-		screenPosX := widget.X + offsetX
-		screenPosY := widget.Y + offsetY
+			screenPosX := widget.X + offsetX
+			screenPosY := widget.Y + offsetY
 
-		//if widget.Type == 0 {
-		//	var30 := screenPosX + widget.Width
-		//	var20 := screenPosY + widget.Height
-		//	minX := x //var15
-		//	if screenPosX > x {
-		//		minX = screenPosX
-		//	}
-		//	minY := y //var16
-		//	if screenPosY > y {
-		//		minY = y
-		//	}
-		//	maxWidth := width //var17
-		//	if var30 < width {
-		//		maxWidth = var30
-		//	}
-		//	maxHeight := height //var18
-		//	if var20 < height {
-		//		maxHeight = var20
-		//	}
-		//	drawInterface(widgets, minX, minY, maxWidth, maxHeight, screenPosX, screenPosY, false)
-		//	return
-		//}
-		if widget.Type == 5 { // sprite
-			sprite := i.spriteLoader.LoadSpriteDefs()[widget.SpriteId]
-			if sprite == nil {
-				continue
-			}
-			if !widget.SpriteTiling {
-				if sprite.FrameWidth == widget.Width && sprite.FrameHeight == widget.Height {
-					sprite.DrawTransBgAt(raster, screenPosX, screenPosY)
-				} else {
-					sprite.DrawScaledAt(raster, screenPosX, screenPosY, widget.Width, widget.Height)
+			//if widget.Type == 0 {
+			//	var30 := screenPosX + widget.Width
+			//	var20 := screenPosY + widget.Height
+			//	minX := x //var15
+			//	if screenPosX > x {
+			//		minX = screenPosX
+			//	}
+			//	minY := y //var16
+			//	if screenPosY > y {
+			//		minY = y
+			//	}
+			//	maxWidth := width //var17
+			//	if var30 < width {
+			//		maxWidth = var30
+			//	}
+			//	maxHeight := height //var18
+			//	if var20 < height {
+			//		maxHeight = var20
+			//	}
+			//	drawInterface(widgets, minX, minY, maxWidth, maxHeight, screenPosX, screenPosY, false)
+			//	return
+			//}
+			if widget.Type == 5 { // sprite
+				sprite := sprites[widget.SpriteId]
+				if sprite == nil {
+					return
 				}
-			} else {
-				raster.ExpandClip(screenPosX, screenPosY, screenPosX+widget.Width, screenPosY+widget.Height)
-				maxX := (sprite.FrameWidth - 1 + widget.Width) / sprite.FrameWidth
-				maxY := (sprite.FrameHeight - 1 + widget.Height) / sprite.FrameHeight
-				for x := 0; x < maxX; x++ {
-					for y := 0; y < maxY; y++ {
-						sprite.DrawTransBgAt(raster, screenPosX+x*sprite.FrameWidth, screenPosY+y*sprite.FrameHeight)
+				if !widget.SpriteTiling {
+					if sprite.FrameWidth == widget.Width && sprite.FrameHeight == widget.Height {
+						sprite.DrawTransBgAt(raster, screenPosX, screenPosY)
+					} else {
+						sprite.DrawScaledAt(raster, screenPosX, screenPosY, widget.Width, widget.Height)
 					}
+				} else {
+					//raster.ExpandClip(screenPosX, screenPosY, screenPosX+widget.Width, screenPosY+widget.Height)
+					maxX := (sprite.FrameWidth - 1 + widget.Width) / sprite.FrameWidth
+					maxY := (sprite.FrameHeight - 1 + widget.Height) / sprite.FrameHeight
+					for x := 0; x < maxX; x++ {
+						for y := 0; y < maxY; y++ {
+							sprite.DrawTransBgAt(raster, screenPosX+x*sprite.FrameWidth, screenPosY+y*sprite.FrameHeight)
+						}
+					}
+					//raster.SetClip(x, y, width, height)
 				}
-				raster.SetClip(x, y, width, height)
 			}
-		}
 
-		if widget.Type == 4 { // text
-			font := i.fontLoader.LoadFonts()[widget.FontId]
-			if font == nil {
-				log.Printf("font not found %d", widget.FontId)
-				continue
+			if widget.Type == 4 { // text
+				font := fonts[widget.FontId]
+				if font == nil {
+					log.Printf("font not found %d", widget.FontId)
+					return
+				}
+				text := widget.Text
+				color := widget.TextColor
+				font.DrawLines(raster, text, screenPosX, screenPosY, widget.Width, widget.Height, color, -1, int(widget.XTextAlignment), int(widget.YTextAlignment), int(widget.LineHeight))
 			}
-			text := widget.Text
-			color := widget.TextColor
-			font.DrawLines(raster, text, screenPosX, screenPosY, widget.Width, widget.Height, color, -1, int(widget.XTextAlignment), int(widget.YTextAlignment), int(widget.LineHeight))
-		}
+		}(widget, wg)
 	}
 
-	return raster.Flush(), nil
+	wg.Wait()
+
+	img := raster.Flush()
+	log.Printf("took %v to build the interface", time.Now().Sub(t))
+	return img, nil
 }

@@ -35,7 +35,7 @@ func main() {
 			log.Printf("invalid spriteId")
 			return
 		}
-		loadInterface(interfaceLoader, canvasImage, currSpriteId)
+		loadInterface(interfaceLoader, canvasImage, id)
 		//loadSprite(spriteMap, canvasImage, id)
 		currSpriteId = id
 	})
@@ -77,7 +77,7 @@ func main() {
 var currSpriteId = 0
 
 func loadInterface(interfaceLoader *archives.InterfaceLoader, canvasImage *canvas.Image, interfaceId int) {
-	img, err := interfaceLoader.DrawInterface(interfaceId, 0, 0, 500, 300, 0, 0)
+	img, err := interfaceLoader.DrawInterface(interfaceId, 0, 0, 550, 400, 0, 0)
 	if err != nil {
 		log.Printf("error loading interface: %s", err.Error())
 		return
