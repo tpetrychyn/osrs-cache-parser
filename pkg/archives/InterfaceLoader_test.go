@@ -7,7 +7,7 @@ import (
 
 func TestInterfaceArchive_LoadInterfaces(t *testing.T) {
 	store := cachestore.NewStore("../../cache")
-	interfaceLoader := NewInterfaceLoader(store)
+	interfaceLoader := NewInterfaceLoader(store, nil, nil)
 
 	interfaceLoader.LoadInterfaces()
 
