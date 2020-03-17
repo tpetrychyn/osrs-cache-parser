@@ -17,20 +17,20 @@ type VertexNormal struct {
 
 type ModelDataDef struct {
 	// statics
-	array1               []int
-	array2               []int
-	someIter             int
-	ModelDataSine        []int
-	ModelDataCosine      []int
+	array1          []int
+	array2          []int
+	someIter        int
+	ModelDataSine   []int
+	ModelDataCosine []int
 
 	VerticesCount        int
 	VerticesX            []int
 	VerticesY            []int
 	VerticesZ            []int
 	FaceCount            int
-	Indices1             []int
-	Indices2             []int
-	Indices3             []int
+	FaceVertexIndices1   []int
+	FaceVertexIndices2   []int
+	FaceVertexIndices3   []int
 	FaceRenderTypes      []byte
 	FaceRenderPriorities []byte
 	FaceAlphas           []byte
@@ -49,6 +49,14 @@ type ModelDataDef struct {
 	FaceLabelsAlpha      [][]int
 	FaceNormals          []*FaceNormal
 	VertexNormals        []*VertexNormal
+	TexturePrimaryColors []uint16
+
+	AShortArray2574 []uint16
+	AShortArray2575 []uint16
+	AShortArray2577 []uint16
+	AShortArray2578 []uint16
+	AByteArray2580  []byte
+	AShortArray2586 []uint16
 }
 
 func (m *ModelDataDef) CalculateVertexNormals() {
@@ -58,14 +66,14 @@ func (m *ModelDataDef) CalculateVertexNormals() {
 
 	m.VertexNormals = make([]*VertexNormal, m.VerticesCount)
 
-	for i:=0;i<m.VerticesCount;i++ {
+	for i := 0; i < m.VerticesCount; i++ {
 		m.VertexNormals[i] = &VertexNormal{}
 	}
 
-	for i:=0;i<m.FaceCount;i++ {
-		var2 := m.Indices1[i]
-		var3 := m.Indices2[i]
-		var4 := m.Indices3[i]
+	for i := 0; i < m.FaceCount; i++ {
+		var2 := m.FaceVertexIndices1[i]
+		var3 := m.FaceVertexIndices2[i]
+		var4 := m.FaceVertexIndices3[i]
 		var5 := m.VerticesX[var3] - m.VerticesX[var2]
 		var6 := m.VerticesY[var3] - m.VerticesY[var2]
 		var7 := m.VerticesZ[var3] - m.VerticesZ[var2]
@@ -73,16 +81,16 @@ func (m *ModelDataDef) CalculateVertexNormals() {
 		var9 := m.VerticesY[var4] - m.VerticesY[var2]
 		var10 := m.VerticesZ[var4] - m.VerticesZ[var2]
 
-		var11 := var6 * var10 - var9 * var7
-		var12 := var7 * var8 - var10 * var5
+		var11 := var6*var10 - var9*var7
+		var12 := var7*var8 - var10*var5
 
-		var13 := var5*var9-var8*var6
+		var13 := var5*var9 - var8*var6
 		for ; var11 > 8192 || var12 > 8192 || var13 > 8192 || var11 < -8192 || var12 < -8192 || var13 < -8192; var13 >>= 1 {
 			var11 >>= 1
 			var12 >>= 1
 		}
 
-		var14 := int(math.Sqrt(float64(var11 * var11 + var12 * var12 + var13 * var13)))
+		var14 := int(math.Sqrt(float64(var11*var11 + var12*var12 + var13*var13)))
 		if var14 == 0 {
 			var14 = 1
 		}
