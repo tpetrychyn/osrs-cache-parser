@@ -27,9 +27,9 @@ func NewMapLoader(store *cachestore.Store) *MapLoader {
 // returns two maps - blocked and bridges
 // the key is x-y-z offset from 0,0 of region
 // to get true world coord will need to add regionBase
-func (m *MapLoader) LoadBlockedTiles(regionId int) (map[string]bool, map[string]bool) {
-	blockedTiles := make(map[string]bool)
-	bridgeTiles := make(map[string]bool)
+func (m *MapLoader) LoadBlockedTiles(regionId int) ([]*models.Tile, []*models.Tile) {
+	blockedTiles := make([]*models.Tile, 0)
+	bridgeTiles := make([]*models.Tile, 0)
 
 	index := m.store.FindIndex(models.IndexType.Maps)
 
@@ -54,8 +54,8 @@ func (m *MapLoader) LoadBlockedTiles(regionId int) (map[string]bool, map[string]
 	buf := bytes.NewBuffer(data)
 
 	for z := 0; z < Height; z++ {
-		for x := 0; x < X; x++ {
-			for y := 0; y < Y; y++ {
+		for lx := 0; lx < X; lx++ {
+			for ly := 0; ly < Y; ly++ {
 				tile := &InternalTile{}
 				for {
 					attribute, _ := buf.ReadByte()
@@ -77,13 +77,23 @@ func (m *MapLoader) LoadBlockedTiles(regionId int) (map[string]bool, map[string]
 					}
 				}
 
+				baseX, baseY := ((regionId>>8)&0xFF)<<6, (regionId&0xFF)<<6
+				x, y := baseX+lx, baseY + ly
+
 				if tile.Settings&BlockedTile == BlockedTile {
-					blockedTiles[fmt.Sprintf("%d-%d-%d", x, y, z)] = true
+					blockedTiles = append(blockedTiles, &models.Tile{
+						X:      x,
+						Y:      y,
+						Height: z,
+					})
 				}
 
 				if tile.Settings&BridgeTile == BridgeTile {
-					blockedTiles[fmt.Sprintf("%d-%d-%d", x, y, z-1)] = false // under bridge tile
-					bridgeTiles[fmt.Sprintf("%d-%d-%d", x, y, z)] = true
+					bridgeTiles = append(bridgeTiles, &models.Tile{
+						X:      x,
+						Y:      y,
+						Height: z,
+					})
 				}
 			}
 		}

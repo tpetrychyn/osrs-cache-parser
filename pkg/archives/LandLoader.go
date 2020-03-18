@@ -63,10 +63,14 @@ func (l *LandLoader) LoadObjects(regionId int, keys []int32) []*models.WorldObje
 			x := (position >> 6) & 0x3F
 			height := (position >> 12) & 0x3
 
+			baseX, baseY := ((regionId>>8)&0xFF)<<6, (regionId&0xFF)<<6
+
 			objectArray = append(objectArray, &models.WorldObject{
 				Id:          id,
 				LocalY:      y,
 				LocalX:      x,
+				WorldX:      baseX + x,
+				WorldY:      baseY + y,
 				Height:      height,
 				Type:        attributes >> 2,
 				Orientation: attributes & 0x3,
