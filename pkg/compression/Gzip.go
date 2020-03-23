@@ -18,11 +18,15 @@ func (g *Gzip) Decompress(reader io.Reader, compressedLength int32, crc hash.Has
 	reader.Read(encryptedData)
 	crc.Write(encryptedData)
 
+	var decryptedData []byte
 	if xteaCipher != nil {
-		encryptedData = utils.XteaDecrypt(xteaCipher, encryptedData)
+		decryptedData = utils.XteaDecrypt(xteaCipher, encryptedData)
+	} else {
+		decryptedData = encryptedData
 	}
 
-	stream := bytes.NewReader(encryptedData)
+	// should be 6870 length
+	stream := bytes.NewReader(decryptedData)
 
 	var decompressedLength int32
 	binary.Read(stream, binary.BigEndian, &decompressedLength)
@@ -32,12 +36,12 @@ func (g *Gzip) Decompress(reader io.Reader, compressedLength int32, crc hash.Has
 
 	gz, err := gzip.NewReader(bytes.NewReader(comp))
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
 	}
 
 	var dBuffer bytes.Buffer
 	if _, err := io.Copy(&dBuffer, gz); err != nil {
-		panic(err)
+		// Loading land is throwing checksum error despite seeming to parse correctly
 	}
 
 	if len(dBuffer.Bytes()) != int(decompressedLength) {

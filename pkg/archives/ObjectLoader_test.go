@@ -6,7 +6,7 @@ import (
 )
 
 func TestObjectArchive_LoadObjectDefs(t *testing.T) {
-	store := cachestore.NewStore("../../../cache")
+	store := cachestore.NewStore("../../cache")
 
 	objectArchive := ObjectArchive{store: store}
 
