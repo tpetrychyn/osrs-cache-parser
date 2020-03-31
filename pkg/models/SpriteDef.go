@@ -10,6 +10,8 @@ type SpriteDef struct {
 	Pixels      []int
 	FrameWidth  int
 	FrameHeight int
+	PixelIdx    []byte
+	Palette     []int
 }
 
 type SpriteGroup struct {
@@ -217,5 +219,24 @@ func (s *SpriteDef) DrawScaled(dst *Rasterizer2d, var3, var4, var5, var6, var7, 
 		var4 += var10
 		var3 = var12
 		var5 += var6
+	}
+}
+
+func (s *SpriteDef) Normalize() {
+	if s.Width != s.FrameWidth || s.Height != s.FrameHeight {
+		var1 := make([]byte, s.FrameWidth*s.FrameHeight)
+		var2 := 0
+		for x := 0; x < s.Height; x++ {
+			for y := 0; y < s.Width; y++ {
+				var1[y+(x+int(s.OffsetX))*s.FrameWidth+int(s.OffsetX)] = s.PixelIdx[var2]
+				var2++
+			}
+		}
+
+		s.PixelIdx = var1
+		s.Width = s.FrameWidth
+		s.Height = s.FrameHeight
+		s.OffsetX = 0
+		s.OffsetY = 0
 	}
 }

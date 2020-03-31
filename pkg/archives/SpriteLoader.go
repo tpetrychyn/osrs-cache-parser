@@ -115,6 +115,8 @@ func (s *SpriteLoader) LoadGroupId(id uint16) []*models.SpriteDef {
 		dimension := sprite.Width * sprite.Height
 		pixelPaletteIndicies := make([]byte, dimension)
 		pixelAlphas := make([]byte, dimension)
+		sprite.PixelIdx = pixelPaletteIndicies
+		sprite.Palette = palette
 
 		flags, _ := reader.ReadByte()
 		if flags&SpriteFlagVertical == 0 {

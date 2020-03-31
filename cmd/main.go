@@ -29,8 +29,8 @@ func main() {
 	interfaceLoader := archives.NewInterfaceLoader(store, spriteLoader, fontLoader)
 	interfaceLoader.LoadInterfaces()
 
-	modelLoader := archives.NewModelLoader(store)
-	loadModel(modelLoader, 35023)
+	//modelLoader := archives.NewModelLoader(store)
+	//loadModel(modelLoader, 35023)
 
 	applet := app.New()
 	spriteIdEntry := widget.NewEntry()

@@ -56,14 +56,14 @@ func (m *MapLoader) LoadBlockedTiles(regionId int) ([]*models.Tile, []*models.Ti
 	for z := 0; z < Height; z++ {
 		for lx := 0; lx < X; lx++ {
 			for ly := 0; ly < Y; ly++ {
-				tile := &InternalTile{}
+				tile := &models.MapTile{}
 				for {
 					attribute, _ := buf.ReadByte()
 					if attribute == 0 {
 						break
 					} else if attribute == 1 {
 						height, _ := buf.ReadByte()
-						tile.Height = height
+						tile.TileHeight = height
 						break
 					} else if attribute <= 49 {
 						tile.AttrOpcode = attribute
@@ -78,7 +78,7 @@ func (m *MapLoader) LoadBlockedTiles(regionId int) ([]*models.Tile, []*models.Ti
 				}
 
 				baseX, baseY := ((regionId>>8)&0xFF)<<6, (regionId&0xFF)<<6
-				x, y := baseX+lx, baseY + ly
+				x, y := baseX+lx, baseY+ly
 
 				if tile.Settings&BlockedTile == BlockedTile {
 					blockedTiles = append(blockedTiles, &models.Tile{
@@ -94,6 +94,13 @@ func (m *MapLoader) LoadBlockedTiles(regionId int) ([]*models.Tile, []*models.Ti
 						Y:      y,
 						Height: z,
 					})
+
+					for k, v := range blockedTiles {
+						if v.X == x && v.Y == y && v.Height == z-1 {
+							blockedTiles[k] = blockedTiles[len(blockedTiles)-1]
+							blockedTiles = blockedTiles[:len(blockedTiles)-1]
+						}
+					}
 				}
 			}
 		}
@@ -102,13 +109,61 @@ func (m *MapLoader) LoadBlockedTiles(regionId int) ([]*models.Tile, []*models.Ti
 	return blockedTiles, bridgeTiles
 }
 
-// FIXME: leaving internal tile stuff here incase it is needed in future
-type InternalTile struct {
-	Height          byte
-	AttrOpcode      byte
-	Settings        byte
-	OverlayId       byte
-	OverlayPath     byte
-	OverlayRotation byte
-	UnderlayId      byte
+func (m *MapLoader) LoadMapTiles(regionId int) ([]*models.MapTile, error) {
+	mapTiles := make([]*models.MapTile, 0)
+
+	index := m.store.FindIndex(models.IndexType.Maps)
+
+	x := regionId >> 8
+	z := regionId & 0xFF
+	var mapArchive *cachestore.Group
+	for _, v := range index.Groups {
+		nameHash := utils.Djb2(fmt.Sprintf("m%d_%d", x, z))
+		if nameHash == v.NameHash {
+			mapArchive = v
+			continue
+		}
+	}
+	if mapArchive == nil {
+		return nil, fmt.Errorf("could not find map archive for region %d", regionId)
+	}
+
+	data, err := m.store.DecompressGroup(mapArchive, nil)
+	if err != nil {
+		return nil, err
+	}
+	buf := bytes.NewBuffer(data)
+
+	for z := 0; z < Height; z++ {
+		for lx := 0; lx < X; lx++ {
+			for ly := 0; ly < Y; ly++ {
+				baseX, baseY := ((regionId>>8)&0xFF)<<6, (regionId&0xFF)<<6
+				x, y := baseX+lx, baseY+ly
+				tile := &models.MapTile{X: x, Y: y, Height: z}
+				for {
+					attribute, _ := buf.ReadByte()
+					if attribute == 0 {
+						break
+					} else if attribute == 1 {
+						height, _ := buf.ReadByte()
+						tile.TileHeight = height
+						break
+					} else if attribute <= 49 {
+						tile.AttrOpcode = attribute
+						tile.OverlayId, _ = buf.ReadByte()
+						tile.OverlayPath = (attribute - 2) / 4
+						tile.OverlayRotation = (attribute - 2) & 3
+					} else if attribute <= 81 {
+						tile.Settings = attribute - 49
+					} else {
+						tile.UnderlayId = attribute - 82
+					}
+				}
+
+				mapTiles = append(mapTiles, tile)
+			}
+		}
+	}
+
+	return mapTiles, nil
 }
