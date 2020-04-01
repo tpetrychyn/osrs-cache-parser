@@ -6,7 +6,6 @@ import (
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/cachestore"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/models"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/utils"
-	"log"
 )
 
 const X = 64
@@ -172,9 +171,6 @@ func (m *MapLoader) LoadMapTiles(regionId int) ([]*models.MapTile, error) {
 					}
 				}
 
-				if tile.Height > 0 {
-					log.Printf("hey")
-				}
 				mapTiles = append(mapTiles, tile)
 			}
 		}
