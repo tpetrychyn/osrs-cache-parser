@@ -15,7 +15,7 @@ type OverlayLoader struct {
 }
 
 func NewOverlayLoader(store *cachestore.Store) *OverlayLoader {
-	return &OverlayLoader{store:store}
+	return &OverlayLoader{store: store}
 }
 
 func (o *OverlayLoader) LoadOverlays() map[int]*models.Overlay {
@@ -45,7 +45,7 @@ func (o *OverlayLoader) LoadOverlays() map[int]*models.Overlay {
 	archiveFiles.LoadContents(data)
 	overlays := make(map[int]*models.Overlay, len(archiveFiles.Files))
 	for _, v := range archiveFiles.Files {
-		overlay := &models.Overlay{Id: int(v.FileId)}
+		overlay := &models.Overlay{Id: int(v.FileId), Texture: 0xFF}
 		is := bytes.NewReader(v.Contents)
 
 		for {
@@ -74,6 +74,7 @@ func (o *OverlayLoader) LoadOverlays() map[int]*models.Overlay {
 			}
 		}
 
+		overlay.CalculateHsl()
 		overlays[overlay.Id] = overlay
 	}
 

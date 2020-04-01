@@ -6,6 +6,7 @@ import (
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/cachestore"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/models"
 	"github.com/tpetrychyn/osrs-cache-parser/pkg/utils"
+	"log"
 )
 
 const X = 64
@@ -18,10 +19,12 @@ const RoofTile = 0x4
 
 type MapLoader struct {
 	store *cachestore.Store
+
+	loadedRegions map[int][]*models.MapTile
 }
 
 func NewMapLoader(store *cachestore.Store) *MapLoader {
-	return &MapLoader{store: store}
+	return &MapLoader{store: store, loadedRegions: make(map[int][]*models.MapTile)}
 }
 
 // returns two maps - blocked and bridges
@@ -109,9 +112,18 @@ func (m *MapLoader) LoadBlockedTiles(regionId int) ([]*models.Tile, []*models.Ti
 	return blockedTiles, bridgeTiles
 }
 
-func (m *MapLoader) LoadMapTiles(regionId int) ([]*models.MapTile, error) {
-	mapTiles := make([]*models.MapTile, 0)
+func (m *MapLoader) LoadMapTilesXY(x, y int) ([]*models.MapTile, error) {
+	x >>= 6
+	y >>= 6
+	return m.LoadMapTiles((x << 8) | y)
+}
 
+func (m *MapLoader) LoadMapTiles(regionId int) ([]*models.MapTile, error) {
+	if r, ok := m.loadedRegions[regionId]; ok {
+		return r, nil
+	}
+
+	mapTiles := make([]*models.MapTile, 0)
 	index := m.store.FindIndex(models.IndexType.Maps)
 
 	x := regionId >> 8
@@ -160,10 +172,14 @@ func (m *MapLoader) LoadMapTiles(regionId int) ([]*models.MapTile, error) {
 					}
 				}
 
+				if tile.Height > 0 {
+					log.Printf("hey")
+				}
 				mapTiles = append(mapTiles, tile)
 			}
 		}
 	}
 
+	m.loadedRegions[regionId] = mapTiles
 	return mapTiles, nil
 }
